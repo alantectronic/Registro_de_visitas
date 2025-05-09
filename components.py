@@ -123,8 +123,10 @@ class DateColumn_():
                     size=20,
                     weight=ft.FontWeight.BOLD,
                     color= ft.Colors.BLACK54,
-                    col={"sm": 6, "md": 4, "xl": 2},               
-                ), 
+                    col={"sm": 6, "md": 4, "xl": 2},
+                    text_align=ft.TextAlign.CENTER,               
+                ),
+
                 )
 
 class Text_():
@@ -208,6 +210,10 @@ class AppBar_():
             ],
         ),
         actions=[
-            ft.Row(controls=self.controls, spacing=20),
+            ft.Container(
+                padding= ft.padding.only(right=20),
+                content = ft.Row(controls=self.controls, spacing=20),
+                
+            ),
         ],
     )

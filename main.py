@@ -289,6 +289,7 @@ def main(page: ft.Page):
         end = False
         if ip == "":
             printer_select.border_color = ft.Colors.RED_900
+            printer_select.icon = ft.Colors.RED_900
             page.update()
         else:
             printer_select.border_color = ft.Colors.BLACK
@@ -399,24 +400,35 @@ def main(page: ft.Page):
             input_search.visible = True
             help_section.visible = False
             about.visible = False
+            container_register.visible = True
+            search_button.visible = True
+    
             btn_print.visible = False
         elif t == "Ayuda":
             input_search.visible = False
             column_register_today.visible = False
             menubar.visible = True
-            help_section.visible = True
             about.visible = False
+            help_section.visible = True
             btn_print.visible = False
+            container_register.visible = False
+            search_button.visible = False
         elif t == "Acerca de":
             input_search.visible = False
             column_register_today.visible = False
             about.visible = True
-            help_section.visible = False
+            help_section.visible = False    
             btn_print.visible = False
+            container_register.visible = False
+            search_button.visible = False
 
         else:
             column_register_today.visible = True
             help_section.visible = False
+            input_search.visible = True
+            about.visible = False
+            container_register.visible = True
+            search_button.visible = True
 
         page.update()
 
@@ -426,7 +438,8 @@ def main(page: ft.Page):
         ip = e.control.value
         page.update()
     # selects
-    printer_select = ft.TextField(label="IP de la impresora", on_change= onChange_ip, width=200, height=40)
+    printer_select = ft.TextField(label="IP de la impresora",on_change= onChange_ip, width=250, height=40)
+    
 
     #alert
     alert = ft.AlertDialog(
@@ -461,9 +474,13 @@ def main(page: ft.Page):
     text_warning.visible = False
  
     # containers, columns and rows
-    container_register = Container_(bgcolor= ft.Colors.GREEN_900, text=text_register, title="Registros: ", height=50, width=200).create()
-    
+    container_register = Container_(bgcolor= ft.Colors.GREEN_900, text=text_register, title="Registros: ", height=50).create()
+    container_register.width = 150
+    container_register.content.alignment = ft.alignment.center
+
+
     column_register_today = ft.DataTable(
+        
         col={"sm": 6, "md": 4, "xl": 2},
     columns=[
             DateColumn_("Id").create(),
@@ -485,6 +502,12 @@ def main(page: ft.Page):
             },
         ),
         controls=[
+            ft.IconButton(
+                icon=ft.icons.HOME,
+                tooltip="Inicio",
+                icon_color=ft.Colors.WHITE,
+                on_click=lambda _: action_profile("Visitas del día")
+            ),
             ft.SubmenuButton(
                 content=ft.Text("Datos", color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
                 controls=[
@@ -503,15 +526,16 @@ def main(page: ft.Page):
 
     # inputs & buttons
     input_search = TextField_(on_click=lambda _: search_phone(), label="Buscar por teléfono", on_change=lambda _: search_phone_input(_)).create()
-    search_button = ft.ElevatedButton("Buscar", on_click=lambda _: search_phone(), bgcolor= "#19647E", height=50,
+    search_button = ft.ElevatedButton("Buscar", on_click=lambda _: search_phone(), bgcolor= "#19647E", height=50, width=150,
                                       color= ft.Colors.WHITE, icon= ft.Icons.SEARCH, icon_color= ft.Colors.WHITE, style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=5)))
     
-    btn_print = ft.ElevatedButton("Imprimir", on_click=lambda _: print_now(_), bgcolor= ft.Colors.GREEN_900, height=50,
+    btn_print = ft.ElevatedButton("Imprimir", on_click=lambda _: print_now(_), bgcolor= ft.Colors.GREEN_900, height=50, width=150,
                                       color= ft.Colors.WHITE, icon= ft.Icons.LOCAL_PRINT_SHOP, style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=5)))
     btn_print.visible = False
     
     #help
     help_section = ft.Column(
+        visible=False,
         controls=[
             ft.Text(value=data_config["help"], col={"sm": 6, "md": 4, "xl": 3}, size=14, weight=ft.FontWeight.BOLD, color= ft.Colors.BLACK54),
         ]
@@ -525,7 +549,6 @@ def main(page: ft.Page):
     )
     about.visible = False
 
-
     # HISTORICS DATA
     def data_historics():
         data = read_google_sheets()
@@ -535,9 +558,9 @@ def main(page: ft.Page):
 
     # page structure
     page.appbar = AppBar_(
-        controls=[internet, printer_select, btn_active, btn_desactive, ft.Image(src=data_config["path_logo"])], name=data_config["bussiness_name"]
+        controls=[internet, printer_select, btn_active, btn_desactive, ft.Image(src=data_config["path_logo"])], name=data_config["bussiness_name"],
     ).create()
-
+    
     # add the page to the app
     page.add(
         ft.Column(
@@ -546,8 +569,17 @@ def main(page: ft.Page):
                 ft.Row(controls=[container_register, input_search, search_button, btn_print]),
                 ft.Row(controls=[text_warning]),
                 ft.Row(controls=[column_register_today]),
+      
             ],
+            
             expand=True,
+
+
         ),
+
+
+        help_section,
+        about
+
     )
 ft.app(main, assets_dir="assets", upload_dir="uploads")

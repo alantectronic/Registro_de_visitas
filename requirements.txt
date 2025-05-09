@@ -1,0 +1,4 @@
+flet==0.25.*
+pywin32
+gspread
+pandas

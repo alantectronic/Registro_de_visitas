@@ -196,6 +196,8 @@ def main(page: ft.Page):
         content = get_content(id=idx, name=name, email=email, phone=phone, pasion=pasion, date=date, business=data_config['bussiness_name'])
         if ip == "":
             printer_select.border_color = ft.Colors.RED_900
+            printer_icon_button.icon_color = ft.Colors.RED_900
+
         else:
             printer_select.border_color = ft.Colors.BLACK
             send_to_printer(ip=ip, port=9100, content=content)      
@@ -289,10 +291,11 @@ def main(page: ft.Page):
         end = False
         if ip == "":
             printer_select.border_color = ft.Colors.RED_900
-            printer_select.icon = ft.Colors.RED_900
+            printer_icon_button.icon_color = ft.Colors.RED_900
             page.update()
         else:
             printer_select.border_color = ft.Colors.BLACK
+            printer_icon_button.icon_color = ft.Colors.BLUE_900
             page.update()
             conection = check_internet_connection()
             if conection:
@@ -438,7 +441,18 @@ def main(page: ft.Page):
         ip = e.control.value
         page.update()
     # selects
-    printer_select = ft.TextField(label="IP de la impresora",on_change= onChange_ip, width=250, height=40)
+    def toggle_printer_select():
+        printer_select.visible = not printer_select.visible
+        page.update()
+
+    printer_icon_button = ft.IconButton(
+        icon=ft.icons.PRINT,
+        icon_color=ft.Colors.BLACK,
+        tooltip="Configurar impresora",
+        on_click=lambda e: toggle_printer_select()
+    )
+
+    printer_select = ft.TextField(label="IP de la impresora", on_change= onChange_ip, width=250, height=40)
     
 
     #alert
@@ -558,7 +572,7 @@ def main(page: ft.Page):
 
     # page structure
     page.appbar = AppBar_(
-        controls=[internet, printer_select, btn_active, btn_desactive, ft.Image(src=data_config["path_logo"])], name=data_config["bussiness_name"],
+        controls=[internet, printer_icon_button ,printer_select, btn_active, btn_desactive, ft.Image(src=data_config["path_logo"])], name=data_config["bussiness_name"],
     ).create()
     
     # add the page to the app

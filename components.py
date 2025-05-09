@@ -10,7 +10,7 @@ path_dat = data_config["path_dat"]
 path_logo = data_config["path_logo"]
 
 class Container_():
-    def __init__(self, bgcolor: ft.Colors, text:ft.Text, title: str, height=60):
+    def __init__(self, bgcolor: ft.Colors, text:ft.Text, title: str, height=70):
         self.bgcolor = bgcolor
         self.text = text
         self.title = title
@@ -123,10 +123,8 @@ class DateColumn_():
                     size=20,
                     weight=ft.FontWeight.BOLD,
                     color= ft.Colors.BLACK54,
-                    col={"sm": 6, "md": 4, "xl": 2},
-                    text_align=ft.TextAlign.CENTER,               
-                ),
-
+                    col={"sm": 6, "md": 4, "xl": 2},               
+                ), 
                 )
 
 class Text_():
@@ -210,10 +208,6 @@ class AppBar_():
             ],
         ),
         actions=[
-            ft.Container(
-                padding= ft.padding.only(right=20),
-                content = ft.Row(controls=self.controls, spacing=20),
-                
-            ),
+            ft.Row(controls=self.controls, spacing=20),
         ],
     )

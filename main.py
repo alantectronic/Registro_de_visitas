@@ -1,10 +1,11 @@
 import flet as ft
 import time
-from helpers import read_google_sheets, send_to_printer, filter_data_today, read_var_google_sheets, convert_to_hexadecimal, get_content, check_internet_connection, read_json, update_json
+from helpers import read_google_sheets, send_to_printer, list_active_printers, convert_to_hexadecimal, get_content, check_internet_connection, read_json, update_json
 import os
 import datetime
 from components import Button_, Indicator_, Text_, Container_, DateColumn_, Submenu_, TextField_,AppBar_
 import config
+import win32print
 
 
 def main(page: ft.Page):
@@ -15,25 +16,16 @@ def main(page: ft.Page):
     global delta
     global path
     global end
-    global data_today
     global text
     global printer_name
     global data
-    global column_data
     global act_modal
-    global url_qr
-    global ip
-    global name_GoogleSheet
     printer_name = "" 
     text = "Visitas del día"
     number = 0
     delta = 0
     end = False
     active = False
-    url_qr = ""
-    ip = ""
-    name_GoogleSheet = ""
-    column_data = []# read_var_google_sheets()
     # data config
     path_config_json = config.DATA_CONFIG
     data_config = read_json(path_config_json)
@@ -91,7 +83,7 @@ def main(page: ft.Page):
                     data_print.to_csv(path, index=False, sep="\t")
 
                 text_register.value = number
-                active_data_today()
+                # active_data_today()
             else:
                 internet.icon = ft.Icons.SIGNAL_WIFI_CONNECTED_NO_INTERNET_4_OUTLINED
                 internet.icon_color = ft.Colors.RED_900             
@@ -181,28 +173,30 @@ def main(page: ft.Page):
         None
         """
         global data
-        global ip
+        stop_service()
         element = data.iloc[0]
-        name = element[data_config["var_value_1"]]
+        name = element["Nombre"]
         name = name.upper()
         name = convert_to_hexadecimal(name)
         idx = element.name + 1
-        email = element[data_config["var_value_2"]]
-        phone = element[data_config["var_value_4"]]
-        pasion = element[data_config["var_value_3"]]
+        email = element["Email"]
+        phone = element["Teléfono"]
+        pasion = element["Pasión"]
         pasion = pasion.upper()
         pasion = convert_to_hexadecimal(pasion)
         date = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         content = get_content(id=idx, name=name, email=email, phone=phone, pasion=pasion, date=date, business=data_config['bussiness_name'])
-        if ip == "":
+        if printer_name == "":
             printer_select.border_color = ft.Colors.RED_900
             printer_icon_button.icon_color = ft.Colors.RED_900
 
         else:
             printer_select.border_color = ft.Colors.BLACK
-            send_to_printer(ip=ip, port=9100, content=content)      
+            printer_handle = win32print.OpenPrinter(printer_name)
+            send_to_printer(printer_handle, content=content)      
             page.update()
-            
+
+        init_service()           
         page.update()
 
     def for_in_data(data, column_register):
@@ -244,32 +238,6 @@ def main(page: ft.Page):
         page.update()    
         
 
-    def active_data_today():
-        """
-        Activates the data today feature.
-
-        Retrieves the data for today, populates the UI component with the data, and updates the UI.
-        The data is filtered from the Google Sheets document and the UI component is populated with the
-        filtered data. The number of records is displayed in another UI component.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        global data_today
-        global text
-        data_today = filter_data_today()
-        text_rgisters_today.value = len(data_today)
-        if data_today is not None and text == "Visitas del día":
-            column_register_today.visible = True
-            column_register_today.rows = []
-            for_in_data(data_today, column_register_today)
-        page.update()
-
     def init_service(delta=0):
         """
         Initializes the service that prints new records from Google Sheets.
@@ -289,7 +257,8 @@ def main(page: ft.Page):
         global printer_name
         global active
         end = False
-        if ip == "":
+        print(printer_name == "")
+        if printer_name == "":
             printer_select.border_color = ft.Colors.RED_900
             printer_icon_button.icon_color = ft.Colors.RED_900
             page.update()
@@ -301,7 +270,7 @@ def main(page: ft.Page):
             if conection:
                 internet.icon = ft.Icons.NETWORK_WIFI_ROUNDED
                 internet.icon_color = ft.Colors.GREEN_900
-                active_data_today()
+                #data_historics()
                 btn_desactive.visible = True
                 btn_active.visible = False
                 page.update()
@@ -364,17 +333,18 @@ def main(page: ft.Page):
         if d is not None:
             for i in range(len(d)):
                 element = d.iloc[i]
-                name = element[data_config["var_value_1"]]
+                name = element["Nombre"]
                 name = name.upper()
                 name = convert_to_hexadecimal(name)
                 idx = element.name + 1
-                email = element[data_config["var_value_2"]]
-                phone = element[data_config["var_value_4"]]
-                pasion = element[data_config["var_value_3"]]
+                email = element["Email"]
+                phone = element["Teléfono"]
+                pasion = element["Pasión"]
                 pasion = pasion.upper()
                 date = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
                 content = get_content(id=idx, name=name, email=email, phone=phone, pasion=pasion, date=date, business=data_config['bussiness_name'])
-                send_to_printer(ip=ip, port=9100, content=content)
+                printer_handle = win32print.OpenPrinter(printer_name)
+                send_to_printer(printer_handle, content=content)
 
     def action_profile(t):
         """
@@ -403,44 +373,57 @@ def main(page: ft.Page):
             input_search.visible = True
             help_section.visible = False
             about.visible = False
-            container_register.visible = True
-            search_button.visible = True
-    
             btn_print.visible = False
         elif t == "Ayuda":
             input_search.visible = False
             column_register_today.visible = False
             menubar.visible = True
-            about.visible = False
             help_section.visible = True
+            about.visible = False
             btn_print.visible = False
-            container_register.visible = False
-            search_button.visible = False
         elif t == "Acerca de":
             input_search.visible = False
             column_register_today.visible = False
             about.visible = True
-            help_section.visible = False    
+            help_section.visible = False
             btn_print.visible = False
-            container_register.visible = False
-            search_button.visible = False
 
         else:
             column_register_today.visible = True
             help_section.visible = False
-            input_search.visible = True
-            about.visible = False
-            container_register.visible = True
-            search_button.visible = True
 
         page.update()
 
     
-    def onChange_ip(e):
-        global ip
-        ip = e.control.value
+    def onChange_PRINTER(e):
+        """
+        Updates the global printer_name variable with the selected printer.
+
+        This function is triggered when the printer selection changes in the UI.
+        It updates the global `printer_name` variable with the value from the
+        control event and refreshes the page.
+
+        Parameters
+        ----------
+        e : Event
+            The event object containing the control with the new printer value.
+        """
+
+        global printer_name
+        printer_name = e.control.value
         page.update()
     # selects
+
+    printers = list_active_printers()
+    printer = ""
+    printers_list = [ft.dropdown.Option(i) for i in printers]
+    printer_select = ft.Dropdown(
+                        options=printers_list,
+                        on_change=onChange_PRINTER,    
+                        value=printer,
+                        label="Selecciona Impresora",
+                        width=300,
+                    )
     def toggle_printer_select():
         printer_select.visible = not printer_select.visible
         page.update()
@@ -451,8 +434,6 @@ def main(page: ft.Page):
         tooltip="Configurar impresora",
         on_click=lambda e: toggle_printer_select()
     )
-
-    printer_select = ft.TextField(label="IP de la impresora", on_change= onChange_ip, width=250, height=40)
     
 
     #alert
@@ -489,12 +470,8 @@ def main(page: ft.Page):
  
     # containers, columns and rows
     container_register = Container_(bgcolor= ft.Colors.GREEN_900, text=text_register, title="Registros: ", height=50).create()
-    container_register.width = 150
-    container_register.content.alignment = ft.alignment.center
-
-
+    
     column_register_today = ft.DataTable(
-        
         col={"sm": 6, "md": 4, "xl": 2},
     columns=[
             DateColumn_("Id").create(),
@@ -516,12 +493,6 @@ def main(page: ft.Page):
             },
         ),
         controls=[
-            ft.IconButton(
-                icon=ft.icons.HOME,
-                tooltip="Inicio",
-                icon_color=ft.Colors.WHITE,
-                on_click=lambda _: action_profile("Visitas del día")
-            ),
             ft.SubmenuButton(
                 content=ft.Text("Datos", color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
                 controls=[
@@ -540,16 +511,15 @@ def main(page: ft.Page):
 
     # inputs & buttons
     input_search = TextField_(on_click=lambda _: search_phone(), label="Buscar por teléfono", on_change=lambda _: search_phone_input(_)).create()
-    search_button = ft.ElevatedButton("Buscar", on_click=lambda _: search_phone(), bgcolor= "#19647E", height=50, width=150,
+    search_button = ft.ElevatedButton("Buscar", on_click=lambda _: search_phone(), bgcolor= "#19647E", height=50,
                                       color= ft.Colors.WHITE, icon= ft.Icons.SEARCH, icon_color= ft.Colors.WHITE, style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=5)))
     
-    btn_print = ft.ElevatedButton("Imprimir", on_click=lambda _: print_now(_), bgcolor= ft.Colors.GREEN_900, height=50, width=150,
-                                      color= ft.Colors.WHITE, icon= ft.Icons.LOCAL_PRINT_SHOP, style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=5)))
+    btn_print = ft.ElevatedButton("Imprimir", on_click=lambda _: print_now(_), bgcolor= ft.Colors.GREEN_900, height=50,
+                                      color= ft.Colors.WHITE, icon= ft.Icons.LOCAL_PRINT_SHOP, icon_color= ft.Colors.WHITE, style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=5)))
     btn_print.visible = False
     
     #help
     help_section = ft.Column(
-        visible=False,
         controls=[
             ft.Text(value=data_config["help"], col={"sm": 6, "md": 4, "xl": 3}, size=14, weight=ft.FontWeight.BOLD, color= ft.Colors.BLACK54),
         ]
@@ -563,6 +533,7 @@ def main(page: ft.Page):
     )
     about.visible = False
 
+
     # HISTORICS DATA
     def data_historics():
         data = read_google_sheets()
@@ -574,7 +545,7 @@ def main(page: ft.Page):
     page.appbar = AppBar_(
         controls=[internet, printer_icon_button ,printer_select, btn_active, btn_desactive, ft.Image(src=data_config["path_logo"])], name=data_config["bussiness_name"],
     ).create()
-    
+
     # add the page to the app
     page.add(
         ft.Column(
@@ -583,17 +554,8 @@ def main(page: ft.Page):
                 ft.Row(controls=[container_register, input_search, search_button, btn_print]),
                 ft.Row(controls=[text_warning]),
                 ft.Row(controls=[column_register_today]),
-      
             ],
-            
             expand=True,
-
-
         ),
-
-
-        help_section,
-        about
-
     )
 ft.app(main, assets_dir="assets", upload_dir="uploads")

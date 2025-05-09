@@ -8,6 +8,7 @@ import socket
 import flet as ft
 import json
 import config
+import win32print
 
 
 def read_json(path):
@@ -368,7 +369,30 @@ def get_content(id, name, email, phone, pasion, date, business):
                 ^PQ1,,,Y
                 ^XZ
                 """
-    return content
+    
+    content2 = f"""
+       ^XA
+^POI
+^LH10,0
+^MMT
+^PW655
+^LL0360
+^LS0
+^FT602,312^A0I,26,26^FH\^FDNetworking & Conferencia de Inteligencia Artificial^FS
+^FT528,231^A0I,41,40^FH\^FDNOMBRE DEL USUARIO^FS
+^FT60,240^BQN,2,7
+^FH\^FDLA,https://wa.me/1234567890^FS
+^FT635,156^A0I,35,38^FH\^FDCorreo^FS
+^FT635,110^A0I,35,38^FH\^FDFecha^FS
+^FT635,65^A0I,35,38^FH\^FDempresa^FS
+^FT635,26^A0I,23,28^FH\^FD1^FS
+^LRY^FO12,291^GB631,0,59^FS^LRN
+^PQ1,0,1,Y^XZ
+
+
+
+        """
+    return content2
 
 
 
@@ -460,11 +484,61 @@ def on_dialog_result(e: ft.FilePickerResultEvent):
     return file_path
 
 
-def send_to_printer(ip, port, content):
+def send_to_printer(printer_handle, content):
     try:
-        printer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        printer_socket.connect((ip, port))
-        printer_socket.sendall(content.encode('utf-8'))
-        printer_socket.close()
-    except Exception as e:
-        print(f"Error al enviar a la impresora: {e}")
+
+            hJob = win32print.StartDocPrinter(
+                printer_handle, 1, ("Etiqueta", None, "RAW")
+            )
+            win32print.StartPagePrinter(printer_handle)
+
+            win32print.WritePrinter(printer_handle, content.encode("utf-8"))
+
+            win32print.EndPagePrinter(printer_handle)
+            win32print.EndDocPrinter(printer_handle)
+    finally:
+
+            win32print.ClosePrinter(printer_handle)
+
+
+def list_active_printers():
+    """
+    Returns a list of active printers on the system.
+
+    This function uses different methods for Windows, Linux, and macOS to
+    determine which printers are active. On Windows, it uses the win32print
+    module to query the print spooler. On Linux and macOS, it uses the
+    lpstat command to get the status of the printers.
+
+    Returns an empty list if no active printers are found or if the
+    system is not supported.
+
+    :return: A list of active printer names
+    """
+    system = platform.system()
+    if system == "Windows":
+        printers = win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)
+        # Filter only active printers
+        active_printers = []
+        for printer in printers:
+            handle = win32print.OpenPrinter(printer[2])
+            status = win32print.GetPrinter(handle, 2)  # Level 2 for detailed info
+            if status['Status'] == 0:  # Status 0 usually means active/ready
+                active_printers.append(printer[2])
+            win32print.ClosePrinter(handle)
+        return active_printers
+    elif system in ["Linux", "Darwin"]:  # Darwin is macOS
+        result = subprocess.run(["lpstat", "-p"], capture_output=True, text=True)
+        if result.returncode == 0:
+            lines = result.stdout.splitlines()
+            active_printers = [
+                line.split(" ")[1]
+                for line in lines
+                if "idle" in line.lower() or "printing" in line.lower()
+            ]
+            return active_printers
+        else:
+            return []
+    else:
+        return []
+    

@@ -265,6 +265,7 @@ def main(page: ft.Page):
         else:
             printer_select.border_color = ft.Colors.BLACK
             printer_icon_button.icon_color = ft.Colors.BLUE_900
+            #printer_select.visible = False
             page.update()
             conection = check_internet_connection()
             if conection:
@@ -273,6 +274,7 @@ def main(page: ft.Page):
                 #data_historics()
                 btn_desactive.visible = True
                 btn_active.visible = False
+                printer_select.visible = False
                 page.update()
                 if number == 0:
                     data = read_google_sheets()
@@ -305,6 +307,7 @@ def main(page: ft.Page):
         """
         global end
         end = True
+        printer_select.visible = True
         btn_desactive.visible = False
         btn_active.visible = True
         page.update()
@@ -381,13 +384,30 @@ def main(page: ft.Page):
             help_section.visible = True
             about.visible = False
             btn_print.visible = False
+            container_register.visible = False
+            input_search.visible = False
+            search_button.visible = False
+
         elif t == "Acerca de":
             input_search.visible = False
             column_register_today.visible = False
-            about.visible = True
+            menubar.visible = True
             help_section.visible = False
+            about.visible = True
             btn_print.visible = False
-
+            container_register.visible = False
+            input_search.visible = False
+            search_button.visible = False
+        elif t == "Home":
+            input_search.visible = True
+            column_register_today.visible = True
+            menubar.visible = True
+            help_section.visible = False
+            about.visible = False
+            btn_print.visible = False
+            container_register.visible = True
+            input_search.visible = True
+            search_button.visible = True
         else:
             column_register_today.visible = True
             help_section.visible = False
@@ -417,7 +437,7 @@ def main(page: ft.Page):
     printers = list_active_printers()
     printer = ""
     printers_list = [ft.dropdown.Option(i) for i in printers]
-    printer_select = ft.Dropdown(
+    printer_select =  ft.Dropdown(
                         options=printers_list,
                         on_change=onChange_PRINTER,    
                         value=printer,
@@ -492,7 +512,13 @@ def main(page: ft.Page):
                 ft.ControlState.DEFAULT: ft.MouseCursor.ZOOM_OUT,
             },
         ),
+
         controls=[
+            
+            ft.SubmenuButton(
+                content=ft.IconButton(icon=ft.Icons.HOME, icon_color=ft.Colors.WHITE, on_click=lambda _: action_profile(t="Home")),
+               
+            ),
             ft.SubmenuButton(
                 content=ft.Text("Datos", color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
                 controls=[
@@ -524,6 +550,7 @@ def main(page: ft.Page):
             ft.Text(value=data_config["help"], col={"sm": 6, "md": 4, "xl": 3}, size=14, weight=ft.FontWeight.BOLD, color= ft.Colors.BLACK54),
         ]
     )
+    help_section.visible = False
     about = ft.Column(
         controls=[
             ft.Text(value=f"Autor:  {data_config["about"]["author"]}", col={"sm": 6, "md": 4, "xl": 3}, size=14, weight=ft.FontWeight.BOLD, color= ft.Colors.BLACK54),
@@ -557,5 +584,7 @@ def main(page: ft.Page):
             ],
             expand=True,
         ),
+        help_section,
+        about
     )
 ft.app(main, assets_dir="assets", upload_dir="uploads")

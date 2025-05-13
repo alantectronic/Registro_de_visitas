@@ -20,8 +20,12 @@ def main(page: ft.Page):
     global printer_name
     global data
     global act_modal
+    global tables
+    global table
+    table = 1
     printer_name = "" 
     text = "Visitas del día"
+    tables = 8
     number = 0
     delta = 0
     end = False
@@ -67,7 +71,8 @@ def main(page: ft.Page):
                 try:
                     delta = len(data)
                 except Exception as e:
-                    delta = 0
+                    # delta = 0
+                    delta = number
                 data_print = []
                 if delta != number:
                     try:
@@ -88,12 +93,15 @@ def main(page: ft.Page):
                 internet.icon = ft.Icons.SIGNAL_WIFI_CONNECTED_NO_INTERNET_4_OUTLINED
                 internet.icon_color = ft.Colors.RED_900             
             page.update()
-            time.sleep(5)
+            time.sleep(10)
             if end:
                 active = False
                 break
 
     # functions
+    def get_tables(_):
+        global tables
+        tables = int(_.control.value)
     def search_phone_input(_):
         """
         Handles input for phone search.
@@ -179,17 +187,16 @@ def main(page: ft.Page):
         name = name.upper()
         name = convert_to_hexadecimal(name)
         idx = element.name + 1
-        email = element["Email"]
+        email = element["Correo"]
         phone = element["Teléfono"]
         pasion = element["Pasión"]
         pasion = pasion.upper()
+        bussiness = element["Empresa"]
         pasion = convert_to_hexadecimal(pasion)
         date = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        content = get_content(id=idx, name=name, email=email, phone=phone, pasion=pasion, date=date, business=data_config['bussiness_name'])
+        content = get_content(tables=0, id=idx, name=name, email=email, phone=phone, pasion=pasion, date=date, business=bussiness)
         if printer_name == "":
             printer_select.border_color = ft.Colors.RED_900
-            printer_icon_button.icon_color = ft.Colors.RED_900
-
         else:
             printer_select.border_color = ft.Colors.BLACK
             printer_handle = win32print.OpenPrinter(printer_name)
@@ -257,10 +264,8 @@ def main(page: ft.Page):
         global printer_name
         global active
         end = False
-        print(printer_name == "")
         if printer_name == "":
             printer_select.border_color = ft.Colors.RED_900
-            printer_icon_button.icon_color = ft.Colors.RED_900
             page.update()
         else:
             printer_select.border_color = ft.Colors.BLACK
@@ -332,7 +337,8 @@ def main(page: ft.Page):
         None
         """
         global printer_name
-        global ip
+        global tables
+        global table
         if d is not None:
             for i in range(len(d)):
                 element = d.iloc[i]
@@ -340,14 +346,19 @@ def main(page: ft.Page):
                 name = name.upper()
                 name = convert_to_hexadecimal(name)
                 idx = element.name + 1
-                email = element["Email"]
+                email = element["Correo"]
                 phone = element["Teléfono"]
                 pasion = element["Pasión"]
+                bussiness = element["Empresa"]
                 pasion = pasion.upper()
                 date = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-                content = get_content(id=idx, name=name, email=email, phone=phone, pasion=pasion, date=date, business=data_config['bussiness_name'])
+                content = get_content(table, id=idx, name=name, email=email, phone=phone, pasion=pasion, date=date, business=bussiness)
                 printer_handle = win32print.OpenPrinter(printer_name)
                 send_to_printer(printer_handle, content=content)
+                if table == tables:
+                    table = 1
+                else:
+                    table += 1
 
     def action_profile(t):
         """
@@ -432,8 +443,18 @@ def main(page: ft.Page):
         global printer_name
         printer_name = e.control.value
         page.update()
-    # selects
 
+    def toggle_printer_select():
+        printer_select.visible = not printer_select.visible
+        page.update()
+    
+    # selects
+    printer_icon_button = ft.IconButton(
+        icon=ft.icons.PRINT,
+        icon_color=ft.Colors.BLACK,
+        tooltip="Configurar impresora",
+        on_click=lambda e: toggle_printer_select()
+    )
     printers = list_active_printers()
     printer = ""
     printers_list = [ft.dropdown.Option(i) for i in printers]
@@ -444,17 +465,6 @@ def main(page: ft.Page):
                         label="Selecciona Impresora",
                         width=300,
                     )
-    def toggle_printer_select():
-        printer_select.visible = not printer_select.visible
-        page.update()
-
-    printer_icon_button = ft.IconButton(
-        icon=ft.icons.PRINT,
-        icon_color=ft.Colors.BLACK,
-        tooltip="Configurar impresora",
-        on_click=lambda e: toggle_printer_select()
-    )
-    
 
     #alert
     alert = ft.AlertDialog(
@@ -484,7 +494,6 @@ def main(page: ft.Page):
 
     # text
     text_register = Text_(value=0).create()
-    text_rgisters_today = Text_(value=0).create()
     text_warning = Text_(value="* No se encontró el registro", color= ft.Colors.RED_900).create()
     text_warning.visible = False
  
@@ -537,6 +546,7 @@ def main(page: ft.Page):
 
     # inputs & buttons
     input_search = TextField_(on_click=lambda _: search_phone(), label="Buscar por teléfono", on_change=lambda _: search_phone_input(_)).create()
+    input_tables = TextField_(label="Número de mesas", on_change=lambda _: get_tables(_), on_click=lambda _: get_tables(_)).create()
     search_button = ft.ElevatedButton("Buscar", on_click=lambda _: search_phone(), bgcolor= "#19647E", height=50,
                                       color= ft.Colors.WHITE, icon= ft.Icons.SEARCH, icon_color= ft.Colors.WHITE, style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=5)))
     
@@ -570,7 +580,7 @@ def main(page: ft.Page):
 
     # page structure
     page.appbar = AppBar_(
-        controls=[internet, printer_icon_button ,printer_select, btn_active, btn_desactive, ft.Image(src=data_config["path_logo"])], name=data_config["bussiness_name"],
+        controls=[internet, printer_icon_button, printer_select, btn_active, btn_desactive, ft.Image(src=data_config["path_logo"])], name=data_config["bussiness_name"]
     ).create()
 
     # add the page to the app
@@ -578,7 +588,7 @@ def main(page: ft.Page):
         ft.Column(
             controls=[
                 ft.ResponsiveRow(controls=[menubar]),
-                ft.Row(controls=[container_register, input_search, search_button, btn_print]),
+                ft.Row(controls=[container_register, input_tables, input_search, search_button, btn_print]),
                 ft.Row(controls=[text_warning]),
                 ft.Row(controls=[column_register_today]),
             ],

@@ -139,7 +139,7 @@ def read_google_sheets():
     
     try:
         client = gspread.service_account(filename=filename)
-        working_sheet = client.open("Data Posada (Responses)")
+        working_sheet = client.open("Networking & Conferencia de Inteligencia Artificial")
         wb_1 =  working_sheet.get_worksheet(0)
         wb_1_names = pd.DataFrame(wb_1.get_all_records())
     except Exception as e:
@@ -170,7 +170,7 @@ def read_var_google_sheets():
     
     try:
         client = gspread.service_account(filename=filename)
-        working_sheet = client.open("Data Posada (Responses)")
+        working_sheet = client.open("Networking & Conferencia de Inteligencia Artificial")
         wb_1 =  working_sheet.get_worksheet(0)
         wb_1_names = pd.DataFrame(wb_1.row_values(1))
         flat_list = [item for sublist in wb_1_names.values.tolist() for item in sublist]
@@ -205,7 +205,7 @@ def filter_data_today():
     Filters data entries from Google Sheets for today's date.
 
     This function reads data from Google Sheets and filters out the entries
-    that have a timestamp matching today's date in the format 'MM/DD/YYYY'.
+    that have a Marca temporal matching today's date in the format 'MM/DD/YYYY'.
     If an error occurs during the process, an empty list is returned.
 
     Returns
@@ -218,7 +218,7 @@ def filter_data_today():
     today = f"{today.month}/{today.day}/{today.year}"
     try:
         data = read_google_sheets()
-        data = data[data['Timestamp'].str.contains(f'^{today}')]
+        data = data[data['Marca temporal'].str.contains(f'^{today}')]
     except Exception as e:
         data = []
     return data
@@ -228,7 +228,7 @@ def filter_data_yesterday():
     Filters data entries from Google Sheets for yesterday's date.
 
     This function reads data from Google Sheets and filters out the entries
-    that have a timestamp matching yesterday's date in the format 'MM/DD/YYYY'.
+    that have a Marca temporal matching yesterday's date in the format 'MM/DD/YYYY'.
     If an error occurs during the process, an empty list is returned.
 
     Returns
@@ -241,7 +241,7 @@ def filter_data_yesterday():
     yesterday = yesterday.strftime('%m/%d/%Y')
     try:  
         data = read_google_sheets()
-        data = data[data['Timestamp'].str.contains(f'^{yesterday}')]
+        data = data[data['Marca temporal'].str.contains(f'^{yesterday}')]
     except Exception as e:
         data = []
     return data
@@ -283,7 +283,7 @@ def content_qr(url, bussiness_name):
             """
     return content
 
-def get_content(id, name, email, phone, pasion, date, business):
+def get_content(tables, id, name, email, phone, pasion, date, business):
     """
     Generates the content for a PDF417 barcode based on the given data.
 
@@ -311,7 +311,8 @@ def get_content(id, name, email, phone, pasion, date, business):
         The content of the PDF417 barcode in ZPL format.
     """
     bar = "\\"
-
+    if tables == 0:
+        tables = id%8 if id%8 != 0 else int(id/8)
     max_length = 60
     passion_lines = [pasion[i:i+30] for i in range(0, len(pasion), 30)]
 
@@ -369,25 +370,39 @@ def get_content(id, name, email, phone, pasion, date, business):
                 ^PQ1,,,Y
                 ^XZ
                 """
-    
+    name = convert_to_hexadecimal(name)
+    text_email = ""
+    if len(email) > 27:
+        text_email = f"^FT645,156^A0I,24,24^FH\^FDCorreo: {email}^FS"
+    else:
+        text_email = f"^FT645,156^A0I,28,28^FH\^FDCorreo: {email}^FS"
+
+    number_split = business.split(" ")
+    if len(number_split) > 2:
+        business = f"{number_split[0]} {number_split[1]}"
     content2 = f"""
-       ^XA
-^POI
-^LH10,0
-^MMT
-^PW655
-^LL0360
-^LS0
-^FT602,312^A0I,26,26^FH\^FDNetworking & Conferencia de Inteligencia Artificial^FS
-^FT528,231^A0I,41,40^FH\^FDNOMBRE DEL USUARIO^FS
-^FT60,240^BQN,2,7
-^FH\^FDLA,https://wa.me/1234567890^FS
-^FT635,156^A0I,35,38^FH\^FDCorreo^FS
-^FT635,110^A0I,35,38^FH\^FDFecha^FS
-^FT635,65^A0I,35,38^FH\^FDempresa^FS
-^FT635,26^A0I,23,28^FH\^FD1^FS
-^LRY^FO12,291^GB631,0,59^FS^LRN
-^PQ1,0,1,Y^XZ
+        ^XA
+        ^CI28
+        ^POI
+        ^LH10,0
+        ^PR8,8
+        ^MMT
+        ^PW655
+        ^LL0360
+        ^LS0
+        ^FT602,312^A0I,26,26^FH\^FDNetworking & Conferencia de Inteligencia Artificial^FS
+        ^FT528,231^A0I,41,40^FH\^FD{name}^FS
+        ^FT30,240^BQN,2,7
+        ^FH\^FDLA,https://wa.me/{phone}^FS
+        {text_email}
+        ^FT645,110^A0I,28,28^FH\^FDFecha: {date}^FS
+        ^FT645,65^A0I,28,28^FH\^FDEmpresa: {business}^FS
+        ^FT645,26^A0I,28,28^FH\^FDMesa: {tables}^FS
+        ^LRY^FO20,291^GB635,0,59^FS^LRN
+        ^CI27
+        ^PQ1,,,Y
+        ^XZ
+
 
 
 
